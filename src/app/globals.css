@@ -1,0 +1,53 @@
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;600;700;800&display=swap');
+@import "tailwindcss";
+
+@theme {
+  --color-boli-yellow: #FFD93D;
+  --color-boli-orange: #FF8C00;
+  --color-boli-pink: #FF6B9D;
+  --color-boli-blue: #4FC3F7;
+  --color-boli-green: #66BB6A;
+  --color-boli-purple: #AB47BC;
+  --color-boli-red: #EF5350;
+  --color-boli-cream: #FFF8E7;
+  --color-boli-dark: #1A1A2E;
+
+  --font-display: 'Fredoka', sans-serif;
+  --font-body: 'Nunito', sans-serif;
+
+  --shadow-boli: 0 8px 32px rgba(79, 195, 247, 0.15);
+  --shadow-card: 0 4px 20px rgba(0, 0, 0, 0.08);
+  --shadow-glow: 0 0 40px rgba(255, 217, 61, 0.3);
+}
+
+@layer base {
+  body {
+    font-family: var(--font-body);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+}
+
+@utility text-shadow-sm {
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+@utility text-shadow-md {
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+@utility text-shadow-lg {
+  text-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+}
+@utility bg-mesh {
+  background-image:
+    radial-gradient(at 40% 20%, rgba(255, 217, 61, 0.15) 0px, transparent 50%),
+    radial-gradient(at 80% 0%, rgba(79, 195, 247, 0.12) 0px, transparent 50%),
+    radial-gradient(at 0% 50%, rgba(255, 107, 157, 0.1) 0px, transparent 50%),
+    radial-gradient(at 80% 80%, rgba(102, 187, 106, 0.08) 0px, transparent 50%);
+}
+@utility scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
