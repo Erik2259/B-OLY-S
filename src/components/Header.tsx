@@ -1,12 +1,20 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { MapPin } from 'lucide-react';
+import { getGreeting, getCustomerName } from '@/lib/customer';
 
 export default function Header() {
+  const [greeting, setGreeting] = useState('Hechos con cariño ❄️ 100% Caseros');
+
+  useEffect(() => {
+    const name = getCustomerName();
+    setGreeting(getGreeting(name || undefined));
+  }, []);
+
   return (
     <header className="relative overflow-hidden bg-gradient-to-br from-boli-yellow via-amber-300 to-boli-orange pt-8 pb-10 px-4">
-      {/* Decorative circles */}
       <div className="absolute -top-10 -right-10 w-40 h-40 rounded-full bg-white/10" />
       <div className="absolute -bottom-8 -left-8 w-32 h-32 rounded-full bg-white/10" />
       <div className="absolute top-4 left-8 w-6 h-6 rounded-full bg-white/20" />
@@ -33,12 +41,13 @@ export default function Header() {
         </motion.p>
 
         <motion.p
+          key={greeting}
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.5 }}
           className="mt-1 text-white/70 text-sm font-medium"
         >
-          Hechos con cariño ❄️ 100% Caseros
+          {greeting}
         </motion.p>
 
         <motion.a
@@ -55,7 +64,6 @@ export default function Header() {
         </motion.a>
       </div>
 
-      {/* Location button */}
       <motion.a
         href="https://maps.google.com/?q=20.397146,-98.199482"
         target="_blank"
@@ -69,13 +77,9 @@ export default function Header() {
         <MapPin className="w-5 h-5 text-boli-orange" />
       </motion.a>
 
-      {/* Wave separator */}
       <div className="absolute -bottom-1 left-0 right-0">
         <svg viewBox="0 0 1440 60" fill="none" className="w-full">
-          <path
-            d="M0 60V20C240 0 480 40 720 30C960 20 1200 0 1440 20V60H0Z"
-            fill="white"
-          />
+          <path d="M0 60V20C240 0 480 40 720 30C960 20 1200 0 1440 20V60H0Z" fill="white" />
         </svg>
       </div>
     </header>

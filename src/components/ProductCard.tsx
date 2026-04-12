@@ -2,7 +2,7 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Check } from 'lucide-react';
+import { Plus, Check, Flame } from 'lucide-react';
 import Image from 'next/image';
 import type { Sabor } from '@/types';
 import { getImageUrl } from '@/lib/supabase';
@@ -32,9 +32,10 @@ const categoryStyles: Record<string, { bg: string; badge: string; text: string; 
 interface Props {
   sabor: Sabor;
   index: number;
+  isTopSeller?: boolean;
 }
 
-export default function ProductCard({ sabor, index }: Props) {
+export default function ProductCard({ sabor, index, isTopSeller }: Props) {
   const style = categoryStyles[sabor.categoria] ?? categoryStyles.Agua;
   const { addItem } = useCart();
   const [justAdded, setJustAdded] = useState(false);
@@ -44,6 +45,8 @@ export default function ProductCard({ sabor, index }: Props) {
     addItem(sabor);
     setJustAdded(true);
     setFlyEmoji(true);
+    // Haptic feedback
+    if (navigator.vibrate) navigator.vibrate(25);
     setTimeout(() => setJustAdded(false), 1200);
     setTimeout(() => setFlyEmoji(false), 800);
   };
@@ -61,7 +64,7 @@ export default function ProductCard({ sabor, index }: Props) {
         border border-white/60
       `}
     >
-      {/* Flying emoji animation */}
+      {/* Flying emoji */}
       <AnimatePresence>
         {flyEmoji && (
           <motion.span
@@ -91,11 +94,24 @@ export default function ProductCard({ sabor, index }: Props) {
             <span className="text-5xl">🍦</span>
           </div>
         )}
+        {/* Category badge */}
         <span
           className={`absolute top-3 left-3 ${style.badge} text-xs font-bold font-display px-3 py-1 rounded-full backdrop-blur-sm`}
         >
           {sabor.categoria}
         </span>
+        {/* Top seller badge */}
+        {isTopSeller && (
+          <motion.span
+            initial={{ scale: 0 }}
+            animate={{ scale: 1 }}
+            transition={{ type: 'spring', delay: index * 0.06 + 0.3 }}
+            className="absolute top-3 right-3 bg-gradient-to-r from-amber-400 to-orange-500 text-white text-[10px] font-bold font-display px-2 py-1 rounded-full flex items-center gap-0.5 shadow-md"
+          >
+            <Flame className="w-3 h-3" />
+            Top
+          </motion.span>
+        )}
       </div>
 
       {/* Info */}
