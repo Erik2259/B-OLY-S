@@ -24,9 +24,10 @@ export default function AdminPage() {
   const [tab, setTab] = useState<'productos' | 'categorias' | 'stats'>('productos');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Producto | null>(null);
-  const [form, setForm] = useState({ nombre: '', descripcion: '', precio: 0, categoria: 'Agua', categoria_id: '', disponible: true, tipo_producto: 'unidad', destacado: false });
+  const [form, setForm] = useState({ nombre: '', descripcion: '', detalles: '', incluye: '' as string, precio: 0, categoria: 'Agua', categoria_id: '', disponible: true, tipo_producto: 'unidad', destacado: false });
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [extraFiles, setExtraFiles] = useState<File[]>([]);
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   // Category form
   const [showCatForm, setShowCatForm] = useState(false);
@@ -59,15 +60,15 @@ export default function AdminPage() {
   const openCreate = () => {
     setEditing(null);
     const defaultCat = categorias[0]?.id || '';
-    setForm({ nombre: '', descripcion: '', precio: 0, categoria: 'Agua', categoria_id: defaultCat, disponible: true, tipo_producto: 'unidad', destacado: false });
-    setImageFile(null); setImagePreview(null); setShowForm(true);
+    setForm({ nombre: '', descripcion: '', detalles: '', incluye: '', precio: 0, categoria: 'Agua', categoria_id: defaultCat, disponible: true, tipo_producto: 'unidad', destacado: false });
+    setImageFile(null); setImagePreview(null); setExtraFiles([]); setShowForm(true);
   };
   const openEdit = (p: Producto) => {
     setEditing(p);
-    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', precio: p.precio, categoria: p.categoria, categoria_id: p.categoria_id, disponible: p.disponible, tipo_producto: p.tipo_producto, destacado: p.destacado });
-    setImageFile(null); setImagePreview(p.imagen_url ? getImageUrl(p.imagen_url) : null); setShowForm(true);
+    setForm({ nombre: p.nombre, descripcion: p.descripcion || '', detalles: p.detalles || '', incluye: (p.incluye || []).join('\n'), precio: p.precio, categoria: p.categoria, categoria_id: p.categoria_id, disponible: p.disponible, tipo_producto: p.tipo_producto, destacado: p.destacado });
+    setImageFile(null); setImagePreview(p.imagen_url ? getImageUrl(p.imagen_url) : null); setExtraFiles([]); setShowForm(true);
   };
-  const closeForm = () => { setShowForm(false); setEditing(null); setImageFile(null); setImagePreview(null); };
+  const closeForm = () => { setShowForm(false); setEditing(null); setImageFile(null); setImagePreview(null); setExtraFiles([]); };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]; if (!file) return;
@@ -86,7 +87,19 @@ export default function AdminPage() {
       const { error: uploadErr } = await supabase.storage.from('sabores-img').upload(fileName, imageFile, { upsert: true });
       if (!uploadErr) imagen_url = fileName;
     }
-    const record = { nombre: form.nombre, descripcion: form.descripcion || null, precio: Number(form.precio), categoria: form.categoria, categoria_id: form.categoria_id, disponible: form.disponible, tipo_producto: form.tipo_producto, destacado: form.destacado, imagen_url };
+    const record = { nombre: form.nombre, descripcion: form.descripcion || null, detalles: form.detalles || null, incluye: form.incluye.trim() ? form.incluye.split('\n').map((s: string) => s.trim()).filter(Boolean) : null, precio: Number(form.precio), categoria: form.categoria, categoria_id: form.categoria_id, disponible: form.disponible, tipo_producto: form.tipo_producto, destacado: form.destacado, imagen_url, imagenes_extra: editing?.imagenes_extra || null };
+
+    // Upload extra images
+    if (extraFiles.length > 0) {
+      const extraUrls: string[] = [...(editing?.imagenes_extra || [])];
+      for (const file of extraFiles) {
+        const ext = file.name.split('.').pop();
+        const fn = `${Date.now()}-extra-${Math.random().toString(36).slice(2)}.${ext}`;
+        const { error: upErr } = await supabase.storage.from('sabores-img').upload(fn, file, { upsert: true });
+        if (!upErr) extraUrls.push(fn);
+      }
+      record.imagenes_extra = extraUrls;
+    }
     if (editing) await supabase.from('productos').update(record).eq('id', editing.id);
     else { const maxOrden = productos.length > 0 ? Math.max(...productos.map((s) => s.orden || 0)) : 0; await supabase.from('productos').insert({ ...record, orden: maxOrden + 1 }); }
     closeForm(); await fetchAll(); setSaving(false);
@@ -263,8 +276,24 @@ export default function AdminPage() {
                 </div>
                 {/* Description */}
                 <div>
-                  <label className="text-sm font-display font-semibold text-gray-600">Descripción</label>
+                  <label className="text-sm font-display font-semibold text-gray-600">Descripción corta</label>
                   <textarea value={form.descripcion} onChange={(e) => setForm({ ...form, descripcion: e.target.value })} rows={2} placeholder="Descripción corta..." className="w-full mt-1.5 px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-boli-yellow transition resize-none" />
+                </div>
+                {/* Details */}
+                <div>
+                  <label className="text-sm font-display font-semibold text-gray-600">Descripción detallada</label>
+                  <textarea value={form.detalles} onChange={(e) => setForm({ ...form, detalles: e.target.value })} rows={3} placeholder="Descripción larga para la vista expandida..." className="w-full mt-1.5 px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-boli-yellow transition resize-none" />
+                </div>
+                {/* Includes */}
+                <div>
+                  <label className="text-sm font-display font-semibold text-gray-600">Lo que incluye (uno por línea)</label>
+                  <textarea value={form.incluye} onChange={(e) => setForm({ ...form, incluye: e.target.value })} rows={3} placeholder={"Ej:\n3 figuras de yeso\nPinturas lavables\nPincel"} className="w-full mt-1.5 px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-boli-yellow transition resize-none" />
+                </div>
+                {/* Extra images */}
+                <div>
+                  <label className="text-sm font-display font-semibold text-gray-600">Fotos extra (galería)</label>
+                  <input type="file" accept="image/*" multiple onChange={(e) => setExtraFiles(Array.from(e.target.files || []))} className="w-full mt-1.5 px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl text-sm" />
+                  {extraFiles.length > 0 && <p className="text-xs text-gray-400 mt-1">{extraFiles.length} foto(s) seleccionadas</p>}
                 </div>
                 {/* Section + SubCategory */}
                 <div className="grid grid-cols-2 gap-3">

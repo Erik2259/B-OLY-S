@@ -15,8 +15,11 @@ export interface Producto {
   id: string;
   nombre: string;
   descripcion: string | null;
+  detalles: string | null;
+  incluye: string[] | null;
+  imagenes_extra: string[] | null;
   precio: number;
-  categoria: string; // subcategoría: Agua, Leche, Gourmet
+  categoria: string;
   categoria_id: string;
   imagen_url: string | null;
   disponible: boolean;
@@ -24,11 +27,8 @@ export interface Producto {
   destacado: boolean;
   orden: number;
   created_at: string;
-  // joined
   categorias?: Categoria;
 }
 
-// Legacy alias
 export type Sabor = Producto;
-
 export type SubCategoria = 'Todos' | 'Agua' | 'Leche' | 'Gourmet';
