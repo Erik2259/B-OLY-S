@@ -8,11 +8,12 @@ import confetti from 'canvas-confetti';
 import { useCart } from '@/lib/cart-context';
 import { getImageUrl, supabase } from '@/lib/supabase';
 import { getCustomerId, getCustomerName, setCustomerName, saveOrder } from '@/lib/customer';
+import type { Categoria } from '@/types';
 
 type Entrega = 'recoger' | 'domicilio';
 type Step = 'cart' | 'name';
 
-export default function CartDrawer() {
+export default function CartDrawer({ categorias }: { categorias: Categoria[] }) {
   const { items, isOpen, closeCart, totalItems, totalPrice, updateQty, clearCart } = useCart();
   const [entrega, setEntrega] = useState<Entrega>('recoger');
   const [direccion, setDireccion] = useState('');
@@ -62,9 +63,25 @@ export default function CartDrawer() {
     saveOrder({ items: orderItems, total: totalPrice, tipo_entrega: entrega });
 
     const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_NUMBER || '521234567890';
-    const lineas = items.map(
-      (item) => `▸ ${item.cantidad}x ${item.sabor.nombre} — $${item.sabor.precio * item.cantidad}`
-    );
+
+    // Group items by category
+    const grouped: Record<string, typeof items> = {};
+    items.forEach((item) => {
+      const cat = categorias.find((c) => c.id === item.sabor.categoria_id);
+      const catName = cat ? cat.nombre : 'Otros';
+      if (!grouped[catName]) grouped[catName] = [];
+      grouped[catName].push(item);
+    });
+
+    const lineas: string[] = [];
+    Object.entries(grouped).forEach(([catName, catItems]) => {
+      const catObj = categorias.find((c) => c.nombre === catName);
+      lineas.push(`-- ${(catObj?.icono || '📦')} ${catName.toUpperCase()} --`);
+      catItems.forEach((item) => {
+        lineas.push(`• ${item.cantidad}x ${item.sabor.nombre} — $${item.sabor.precio * item.cantidad}`);
+      });
+    });
+
     const tipoEntrega =
       entrega === 'recoger'
         ? `📍 *Paso a recoger*\n${DIRECCION_TIENDA}`
