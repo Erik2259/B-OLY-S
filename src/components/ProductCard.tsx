@@ -8,6 +8,7 @@ import type { Producto } from '@/types';
 import { getImageUrl } from '@/lib/supabase';
 import { useCart } from '@/lib/cart-context';
 import ProductDetail from '@/components/ProductDetail';
+import ReservaModal from '@/components/ReservaModal';
 
 const categoryStyles: Record<string, { bg: string; badge: string; text: string; btn: string }> = {
   Agua: { bg: 'from-sky-50 to-cyan-50', badge: 'bg-boli-blue/15 text-boli-blue', text: 'text-boli-blue', btn: 'bg-boli-blue hover:bg-cyan-500' },
@@ -28,9 +29,14 @@ export default function ProductCard({ sabor, index, isTopSeller }: Props) {
   const [justAdded, setJustAdded] = useState(false);
   const [flyEmoji, setFlyEmoji] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [showReserva, setShowReserva] = useState(false);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (sabor.tipo_producto === 'paquete') {
+      setShowReserva(true);
+      return;
+    }
     addItem(sabor);
     setJustAdded(true);
     setFlyEmoji(true);
@@ -131,6 +137,13 @@ export default function ProductCard({ sabor, index, isTopSeller }: Props) {
             onClose={() => setExpanded(false)}
             isTopSeller={isTopSeller}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Reserva modal for paquete products */}
+      <AnimatePresence>
+        {showReserva && (
+          <ReservaModal producto={sabor} onClose={() => setShowReserva(false)} />
         )}
       </AnimatePresence>
     </>

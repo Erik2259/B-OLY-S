@@ -2,12 +2,13 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Plus, Check, Sparkles } from 'lucide-react';
+import { Plus, Check, Sparkles, Calendar } from 'lucide-react';
 import Image from 'next/image';
 import type { Producto } from '@/types';
 import { getImageUrl } from '@/lib/supabase';
 import { useCart } from '@/lib/cart-context';
 import ProductDetail from '@/components/ProductDetail';
+import ReservaModal from '@/components/ReservaModal';
 
 interface Props {
   producto: Producto;
@@ -18,9 +19,14 @@ export default function TemporadaBanner({ producto, index }: Props) {
   const { addItem } = useCart();
   const [justAdded, setJustAdded] = useState(false);
   const [expanded, setExpanded] = useState(false);
+  const [showReserva, setShowReserva] = useState(false);
 
   const handleAdd = (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (producto.tipo_producto === 'paquete') {
+      setShowReserva(true);
+      return;
+    }
     addItem(producto);
     setJustAdded(true);
     if (navigator.vibrate) navigator.vibrate(25);
@@ -60,6 +66,8 @@ export default function TemporadaBanner({ producto, index }: Props) {
                 <AnimatePresence mode="wait">
                   {justAdded ? (
                     <motion.span key="check" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center gap-1"><Check className="w-4 h-4" /> ¡Agregado!</motion.span>
+                  ) : producto.tipo_producto === 'paquete' ? (
+                    <motion.span key="reservar" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center gap-1"><Calendar className="w-4 h-4" /> Reservar</motion.span>
                   ) : (
                     <motion.span key="add" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center gap-1"><Plus className="w-4 h-4" /> Agregar</motion.span>
                   )}
@@ -72,6 +80,9 @@ export default function TemporadaBanner({ producto, index }: Props) {
 
       <AnimatePresence>
         {expanded && <ProductDetail producto={producto} onClose={() => setExpanded(false)} />}
+      </AnimatePresence>
+      <AnimatePresence>
+        {showReserva && <ReservaModal producto={producto} onClose={() => setShowReserva(false)} />}
       </AnimatePresence>
     </>
   );

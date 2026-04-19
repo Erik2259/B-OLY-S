@@ -6,12 +6,14 @@ import { motion, AnimatePresence } from 'framer-motion';
 import {
   Plus, LogOut, Save, Trash2, Pencil, X, Loader2,
   Image as ImageIcon, Eye, EyeOff, ChevronLeft, BarChart3,
-  IceCreamCone, Tag, Sparkles,
+  IceCreamCone, Tag, Sparkles, CalendarDays,
 } from 'lucide-react';
 import Image from 'next/image';
 import { supabase, getImageUrl } from '@/lib/supabase';
 import type { Producto, Categoria } from '@/types';
 import Dashboard from '@/components/Dashboard';
+import Agenda from '@/components/Agenda';
+import { requestNotificationPermission, checkDeliveryReminders } from '@/lib/push';
 
 const SUBCATEGORIAS = ['Agua', 'Leche', 'Gourmet', 'General'];
 
@@ -21,7 +23,7 @@ export default function AdminPage() {
   const [categorias, setCategorias] = useState<Categoria[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [tab, setTab] = useState<'productos' | 'categorias' | 'stats'>('productos');
+  const [tab, setTab] = useState<'productos' | 'categorias' | 'agenda' | 'stats'>('productos');
   const [showForm, setShowForm] = useState(false);
   const [editing, setEditing] = useState<Producto | null>(null);
   const [form, setForm] = useState({ nombre: '', descripcion: '', detalles: '', incluye: '' as string, precio: 0, categoria: 'Agua', categoria_id: '', disponible: true, tipo_producto: 'unidad', destacado: false });
@@ -34,11 +36,14 @@ export default function AdminPage() {
   const [editingCat, setEditingCat] = useState<Categoria | null>(null);
   const [catForm, setCatForm] = useState({ nombre: '', slug: '', icono: '📦', descripcion: '', activa: true, fecha_inicio: '', fecha_fin: '' });
   const [deleteCatConfirm, setDeleteCatConfirm] = useState<string | null>(null);
+  const [urgentCount, setUrgentCount] = useState(0);
 
   const checkAuth = useCallback(async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) { router.push('/login'); return; }
     fetchAll();
+    // Setup push notifications for admin
+    requestNotificationPermission().then(() => checkDeliveryReminders());
   }, [router]);
 
   useEffect(() => { checkAuth(); }, [checkAuth]);
@@ -51,6 +56,11 @@ export default function AdminPage() {
     ]);
     setProductos(pRes.data || []);
     setCategorias(cRes.data || []);
+    // Check urgent reservas
+    const tomorrow = new Date();
+    tomorrow.setDate(tomorrow.getDate() + 2);
+    const { data: urgentRes } = await supabase.from('reservas').select('id').in('estado', ['pendiente', 'confirmada', 'preparando']).lte('fecha_entrega', tomorrow.toISOString().split('T')[0]);
+    setUrgentCount(urgentRes?.length || 0);
     setLoading(false);
   };
 
@@ -149,19 +159,25 @@ export default function AdminPage() {
       <div className="max-w-2xl mx-auto px-4 pt-4">
         <div className="flex gap-2 mb-4 overflow-x-auto scrollbar-hide">
           {[
-            { key: 'productos' as const, icon: <IceCreamCone className="w-4 h-4" />, label: 'Productos' },
-            { key: 'categorias' as const, icon: <Tag className="w-4 h-4" />, label: 'Secciones' },
-            { key: 'stats' as const, icon: <BarChart3 className="w-4 h-4" />, label: 'Estadísticas' },
+            { key: 'productos' as const, icon: <IceCreamCone className="w-4 h-4" />, label: 'Productos', badge: 0 },
+            { key: 'categorias' as const, icon: <Tag className="w-4 h-4" />, label: 'Secciones', badge: 0 },
+            { key: 'agenda' as const, icon: <CalendarDays className="w-4 h-4" />, label: 'Agenda', badge: urgentCount },
+            { key: 'stats' as const, icon: <BarChart3 className="w-4 h-4" />, label: 'Estadísticas', badge: 0 },
           ].map((t) => (
-            <button key={t.key} onClick={() => setTab(t.key)} className={`flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-display font-semibold text-sm whitespace-nowrap transition-all ${tab === t.key ? 'bg-boli-orange text-white shadow-md' : 'bg-gray-100 text-gray-500'}`}>
+            <button key={t.key} onClick={() => setTab(t.key)} className={`relative flex items-center gap-1.5 px-4 py-2.5 rounded-xl font-display font-semibold text-sm whitespace-nowrap transition-all ${tab === t.key ? 'bg-boli-orange text-white shadow-md' : 'bg-gray-100 text-gray-500'}`}>
               {t.icon} {t.label}
+              {t.badge > 0 && (
+                <span className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center animate-pulse">
+                  {t.badge}
+                </span>
+              )}
             </button>
           ))}
         </div>
       </div>
 
       <div className="max-w-2xl mx-auto px-4 pb-6">
-        {tab === 'stats' ? <Dashboard /> : tab === 'categorias' ? (
+        {tab === 'stats' ? <Dashboard /> : tab === 'agenda' ? <Agenda /> : tab === 'categorias' ? (
           <>
             <motion.button whileTap={{ scale: 0.97 }} onClick={openCreateCat} className="w-full bg-gradient-to-r from-boli-purple to-violet-500 text-white font-display font-bold py-4 rounded-2xl shadow-lg flex items-center justify-center gap-2 mb-6">
               <Plus className="w-5 h-5" /> Nueva Sección

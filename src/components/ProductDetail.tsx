@@ -2,11 +2,12 @@
 
 import { useState } from 'react';
 import { motion, AnimatePresence, PanInfo } from 'framer-motion';
-import { X, Plus, Check, ChevronLeft, ChevronRight, Package, Sparkles } from 'lucide-react';
+import { X, Plus, Check, ChevronLeft, ChevronRight, Package, Sparkles, Calendar } from 'lucide-react';
 import Image from 'next/image';
 import type { Producto } from '@/types';
 import { getImageUrl } from '@/lib/supabase';
 import { useCart } from '@/lib/cart-context';
+import ReservaModal from '@/components/ReservaModal';
 
 interface Props {
   producto: Producto;
@@ -25,6 +26,7 @@ export default function ProductDetail({ producto, onClose, isTopSeller }: Props)
   const { addItem, items } = useCart();
   const [justAdded, setJustAdded] = useState(false);
   const [currentImg, setCurrentImg] = useState(0);
+  const [showReserva, setShowReserva] = useState(false);
 
   const allImages = [
     producto.imagen_url,
@@ -34,6 +36,10 @@ export default function ProductDetail({ producto, onClose, isTopSeller }: Props)
   const cantidadEnCarrito = items.find((i) => i.sabor.id === producto.id)?.cantidad || 0;
 
   const handleAdd = () => {
+    if (producto.tipo_producto === 'paquete') {
+      setShowReserva(true);
+      return;
+    }
     addItem(producto);
     setJustAdded(true);
     if (navigator.vibrate) navigator.vibrate(25);
@@ -255,6 +261,10 @@ export default function ProductDetail({ producto, onClose, isTopSeller }: Props)
                   <motion.span key="ok" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center gap-1.5">
                     <Check className="w-5 h-5" /> ¡Agregado!
                   </motion.span>
+                ) : producto.tipo_producto === 'paquete' ? (
+                  <motion.span key="reservar" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center gap-1.5">
+                    <Calendar className="w-5 h-5" /> Reservar
+                  </motion.span>
                 ) : (
                   <motion.span key="add" initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }} className="flex items-center gap-1.5">
                     <Plus className="w-5 h-5" /> Agregar
@@ -265,6 +275,13 @@ export default function ProductDetail({ producto, onClose, isTopSeller }: Props)
           </motion.div>
         </motion.div>
       </motion.div>
+
+      {/* Reserva modal for paquete products */}
+      <AnimatePresence>
+        {showReserva && (
+          <ReservaModal producto={producto} onClose={() => { setShowReserva(false); onClose(); }} />
+        )}
+      </AnimatePresence>
     </>
   );
 }
